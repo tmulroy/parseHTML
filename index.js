@@ -1,21 +1,33 @@
-const fs = require('fs')
-const htmlDirectory = './data/2015-03-18'
-const parseHTML = require('./htmlParser')
-const cheerio = require('cheerio')
-let namesArray = []
+const fs = require('fs');
+const { promisify } = require('util');
+const readFile = promisify(fs.readFile);
+const readDir = promisify(fs.readdir);
+const cheerio = require('cheerio');
+const htmlDirectory = './data/2015-03-18';
 
-// NOTE: need to change to async to allow namesArray to be logged once after completion
-  fs.readdir(htmlDirectory, (err, htmlFiles) => {
-    if (err) {
-      console.error(`Error reading directory ${htmlDirectory}`)
-    }
+const readFileAsync = async (fileName) => {
+  const fileContents = await readFile(`${htmlDirectory}/${fileName}`, 'utf8');
+  return fileContents
+}
 
+const getFileNamesAsync = async () => {
+  const fileNames = await readDir(htmlDirectory);
+  return fileNames
+}
 
-    htmlFiles.forEach((file, idx) => {
-      fs.readFile(`${htmlDirectory}/${file}`, 'utf8', (fileError, data) => {
-        if (fileError) throw fileError
-        namesArray.push(parseHTML(data))
-        console.log('names array', namesArray);
-      })
-    })
-  })
+const parseHTML = (htmlText) => {
+  const $ = cheerio.load(htmlText);
+  const name = $('body').find('h2').text();
+  return name
+}
+
+(async function () {
+  let namesArray = [];
+  const htmlFileNames = await getFileNamesAsync();
+  for (let file of htmlFileNames) {
+    const fileContents = await readFileAsync(file);
+    let name = parseHTML(fileContents)
+    namesArray.push(name)
+  }
+  console.log('Artist Names: \n', namesArray);
+})()
