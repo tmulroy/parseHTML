@@ -6,6 +6,7 @@ const cheerio = require('cheerio');
 const htmlDirectory = './data/2015-03-18';
 
 // TODO: account for unique artist names.
+// TODO: create one function extractData which takes in a html tag to extract..(how to account for multiple tags)
 
 const readFileAsync = async (fileName) => {
   const fileContents = await readFile(`${htmlDirectory}/${fileName}`, 'utf8');
@@ -30,17 +31,30 @@ const getTitle = (htmlText) => {
   return title
 }
 
+const getPrice = (htmlText) => {
+  const $ = cheerio.load(htmlText);
+  const parsedTags = $('body').find('div');
+  const price = parsedTags['1'].children[0].data
+  // let splitPrice = price.split(' ');
+  return price
+}
+
 (async function () {
   let artworkArray = [];
   const htmlFileNames = await getFileNamesAsync();
   for (let file of htmlFileNames) {
     let artworkObject = { artist: '', works: []}
+    let workObject = {title: '', price: ''}
     const fileContents = await readFileAsync(file);
-    let name = getArtistNames(fileContents);
-    let title = getTitle(fileContents);
+    const name = getArtistNames(fileContents);
+    // add work title and price
+    workObject.title = getTitle(fileContents);
+    workObject.price = getPrice(fileContents);
+    // add artist name
     artworkObject.artist = name;
-    artworkObject.works.push(title)
+    artworkObject.works.push(workObject)
+    // push new artist info to array
     artworkArray.push(artworkObject)
   }
-  console.log('Artwork Artist Names and Works: \n', artworkArray);
+  console.log('Artwork Artist Names and Works: \n', JSON.stringify(artworkArray));
 })()
