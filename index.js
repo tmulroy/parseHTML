@@ -4,15 +4,13 @@ const readFile = promisify(fs.readFile);
 const readDir = promisify(fs.readdir);
 const cheerio = require('cheerio');
 const htmlDirectory = './data/2017-12-20';
+const readFileAsync = require('./utils/readFileAsync')
 
-// TODO: account for unique artist names.
-// TODO: account for multiple pieces of artwork per artist
-// TODO: refactor so creating work object is separated from main()
 
-const readFileAsync = async (fileName) => {
-  const fileContents = await readFile(`${htmlDirectory}/${fileName}`, 'utf8');
-  return fileContents
-}
+// const readFileAsync = async (fileName) => {
+//   const fileContents = await readFile(`${htmlDirectory}/${fileName}`, 'utf8');
+//   return fileContents
+// }
 
 const getFileNamesAsync = async () => {
   const fileNames = await readDir(htmlDirectory);
@@ -64,8 +62,6 @@ const getPriceInfo = (htmlText) => {
     amount = convertGBPToUSD(amount);
     currency = 'USD';
   }
-  // console.log('getPriceInfo amount');
-  // console.log(amount);
   const priceInfo = { currency, amount };
   return priceInfo
 }
@@ -80,7 +76,7 @@ const generateWorkEntry = (fileContents) => {
   return workObject
 }
 
-const getTotalValue = (artistWorks, artist) => {
+const getTotalArtworkValue = (artistWorks, artist) => {
   let totalValue = 0;
   for (entry of artistWorks) {
     let currentValue = stringToNumber(entry.amount)
@@ -89,20 +85,18 @@ const getTotalValue = (artistWorks, artist) => {
   return totalValue
 }
 
-(async function () {
+(async () => {
   let artworkArray = [];
   const htmlFileNames = await getFileNamesAsync();
   for (let file of htmlFileNames) {
     let artworkObject = { artist: '', works: []}
-    let workObject = {title: '', currency: '', amount: ''}
+    // let workObject = {title: '', currency: '', amount: ''}
     const fileContents = await readFileAsync(file);
     const name = getArtistName(fileContents);
     const workEntry = generateWorkEntry(fileContents)
     if (artistExists(artworkArray, name)) {
       for (entry of artworkArray) {
-        if (entry.artist == name) {
-          entry.works.push(workEntry);
-        }
+        (entry.artist == name) ? entry.works.push(workEntry) : null
       }
     } else {
       // add artist name
@@ -113,7 +107,7 @@ const getTotalValue = (artistWorks, artist) => {
     }
   }
   for (let artist of artworkArray) {
-    artist.totalValue = getTotalValue(artist.works, artist.artist)
+    artist.totalValue = getTotalArtworkValue(artist.works, artist.artist)
   }
   console.log('Artwork Artist Names and Works: \n', JSON.stringify(artworkArray));
-})()
+})();
