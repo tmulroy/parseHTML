@@ -3,7 +3,7 @@ const { promisify } = require('util');
 const readFile = promisify(fs.readFile);
 const readDir = promisify(fs.readdir);
 const cheerio = require('cheerio');
-const htmlDirectory = './data/2015-03-18';
+const htmlDirectory = './data/2017-12-20';
 
 // TODO: account for unique artist names.
 // TODO: account for multiple pieces of artwork per artist
@@ -21,29 +21,32 @@ const getFileNamesAsync = async () => {
 
 const getArtistName = (htmlText) => {
   const $ = cheerio.load(htmlText);
-  const name = $('body').find('h2').text();
+  const name = $('body').find('.artist').text();
   return name
 }
 
 const artistExists = (artworkArray, name) => {
+  let bool;
   for (artist of artworkArray) {
-    return (artist.artist == name) ? true : false
+    bool = (artist.artist == name) ? true : false
   }
+  return bool == true ? true : false;
 }
 
 const getTitle = (htmlText) => {
   const $ = cheerio.load(htmlText);
   const parsedTags = $('body').find('h3');
-  const title = parsedTags['0'].children[0].data;
+  const title = parsedTags['1'].children[0].data;
   return title
 }
 
 const getPriceInfo = (htmlText) => {
   const $ = cheerio.load(htmlText);
-  const parsedTags = $('body').find('div');
-  const price = parsedTags['1'].children[0].data
-  const splitPrice = price.split(' ');
-  const priceInfo = { currency: splitPrice[0], amount: splitPrice[1]};
+  const parsedTags = $('body').find('.currency');
+  const currencyTag = $('.currency')
+  const currency = currencyTag['0'].children[0].data;
+  const amount = currencyTag['0'].next.children[0].data
+  const priceInfo = { currency, amount };
   return priceInfo
 }
 
@@ -65,7 +68,6 @@ const generateWorkEntry = (fileContents) => {
     let workObject = {title: '', currency: '', amount: ''}
     const fileContents = await readFileAsync(file);
     const name = getArtistName(fileContents);
-
     const workEntry = generateWorkEntry(fileContents)
     if (artistExists(artworkArray, name)) {
       for (entry of artworkArray) {
@@ -81,5 +83,5 @@ const generateWorkEntry = (fileContents) => {
       artworkArray.push(artworkObject)
     }
   }
-  console.log('Artwork Artist Names and Works: \n', artworkArray);
+  console.log('Artwork Artist Names and Works: \n', JSON.stringify(artworkArray));
 })()
