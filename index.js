@@ -40,12 +40,32 @@ const getTitle = (htmlText) => {
   return title
 }
 
+const stringToNumber = (string) => {
+  string = string.replace(/,/g, '');
+  const number = Number.parseFloat(string, 10);
+  return number
+}
+
+const convertGBPToUSD = (amount) => {
+  const exchangeRate = 1.34;
+  amount = stringToNumber(amount);
+  amount = amount*exchangeRate;
+  amount = amount.toString();
+  return amount;
+}
+
 const getPriceInfo = (htmlText) => {
   const $ = cheerio.load(htmlText);
   const parsedTags = $('body').find('.currency');
   const currencyTag = $('.currency')
-  const currency = currencyTag['0'].children[0].data;
-  const amount = currencyTag['0'].next.children[0].data
+  let currency = currencyTag['0'].children[0].data;
+  let amount = currencyTag['0'].next.children[0].data;
+  if (currency === 'GBP') {
+    amount = convertGBPToUSD(amount);
+    currency = 'USD';
+  }
+  // console.log('getPriceInfo amount');
+  // console.log(amount);
   const priceInfo = { currency, amount };
   return priceInfo
 }
@@ -58,6 +78,15 @@ const generateWorkEntry = (fileContents) => {
     amount
   }
   return workObject
+}
+
+const getTotalValue = (artistWorks, artist) => {
+  let totalValue = 0;
+  for (entry of artistWorks) {
+    let currentValue = stringToNumber(entry.amount)
+    totalValue += currentValue;
+  }
+  return totalValue
 }
 
 (async function () {
@@ -82,6 +111,9 @@ const generateWorkEntry = (fileContents) => {
       // push new artist info to array
       artworkArray.push(artworkObject)
     }
+  }
+  for (let artist of artworkArray) {
+    artist.totalValue = getTotalValue(artist.works, artist.artist)
   }
   console.log('Artwork Artist Names and Works: \n', JSON.stringify(artworkArray));
 })()
